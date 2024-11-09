@@ -1528,7 +1528,12 @@ class Parser {
 			case "[".code: return TBkOpen;
 			case "]".code: return TBkClose;
 			case "'".code, '"'.code: return TConst( CString(readString(char)) );
-			case "?".code: return TQuestion;
+			case "?".code:
+				char = readChar();	
+				if ( char == "?".code)
+					return TOp("??");
+				this.char = char;
+				return TQuestion;
 			case ":".code: return TDoubleDot;
 			case '='.code:
 				char = readChar();
