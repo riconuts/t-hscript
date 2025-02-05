@@ -35,6 +35,7 @@ class Interp {
 	public var variables : Map<String,Dynamic>;
 	var locals : Map<String,{ r : Dynamic }>;
 	var binops : Map<String, Expr -> Expr -> Dynamic >;
+	var importOverrides : Map<String,Class<Dynamic>>;
 
 	var depth : Int;
 	var inTry : Bool;
@@ -47,6 +48,7 @@ class Interp {
 
 	public function new() {
 		locals = new Map();
+		importOverrides = new Map();
 		declared = new Array();
 		resetVariables();
 		initOps();
@@ -537,6 +539,18 @@ class Interp {
 				return null;
 			}
 
+			if (m != IAll && importOverrides.exists(p)) {
+				var c = importOverrides.get(p);
+				switch (m) {
+					case INormal:
+						variables.set(p.split(".").pop(), c);
+					case IAsName(alias):
+						variables.set(alias, c);
+					case IAll:
+				}
+				return null;
+			}
+
 			// grab the package and field data
 
 			// packages can't begin with an uppercase, and modules cant begin with a lowercase. That makes it pppretty easy to split the module and package
@@ -547,18 +561,16 @@ class Interp {
 			var fields:Array<String> = [];
 
 			// and iterate through the path, adding the first uppercase thing + beyond to the module and the rest to the package
-			var path = p.split(".");
 
 			var navigatingModule:Bool = false;
-			for(file in path){
-				var beginning = file.charAt(0);
-				var uppercase = (beginning >= 'A' && beginning <= 'Z');
-
+			for(file in p.split(".")) {
 				if (navigatingModule)
 					fields.push(file);
 				else
 					module.push(file);
 
+				var beginning = file.charCodeAt(0);
+				var uppercase = (beginning >= 'A'.code && beginning <= 'Z'.code);
 				if (uppercase)
 					navigatingModule = true; // packages can never begin with an uppercase letter so if it begins with an uppercase then we're goin thru the module
 			}
